@@ -1,0 +1,172 @@
+import pygame
+import sys
+import random
+
+pygame.init()
+
+# Window Parameters and Name
+WIDTH = 800
+HEIGHT = 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Slipstream")
+# Clock and Framerate
+clock = pygame.time.Clock()
+
+class Player:
+    def __init__(self, x_player, y_player, width, height):
+        self.rect = pygame.Rect(x_player, y_player, width, height)
+        self.y_velocity = 0
+        self.on_ground = False
+        self.health = 3  # Player health
+
+    def move(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.rect.x -= 8
+        if keys[pygame.K_RIGHT]:
+            self.rect.x += 8
+        if keys[pygame.K_SPACE] and self.on_ground:  # Jump if on the ground
+            self.y_velocity = -15
+            self.on_ground = False
+        if keys[pygame.K_r]:  # Reset player position (debugging)
+            self.rect.x = 550
+            self.rect.y = 0
+        # Boundaries to stay within the screen
+        if self.rect.x < 0:
+            self.rect.x = 0
+        if self.rect.x + self.rect.width >= WIDTH:
+            self.rect.x = WIDTH - self.rect.width
+
+    def apply_gravity(self):
+        if not self.on_ground:
+            self.y_velocity += 1  # Gravity force
+        self.rect.y += self.y_velocity
+
+    def handle_collisions(self, platforms):
+        self.on_ground = False
+        for platform in platforms:
+            if self.rect.colliderect(platform.collider) and self.y_velocity > 0:
+                self.rect.bottom = platform.collider.top
+                self.y_velocity = 0
+                self.on_ground = True
+
+    def lose_health(self, damage):
+        self.health -= damage
+        if self.health <= 0:
+            print("Player Dead")
+            self.reset_position()
+
+    def reset_position(self):
+        self.rect.x = 550
+        self.rect.y = 0
+        self.health = 3  # Reset health
+
+    def draw(self):
+        pygame.draw.rect(screen, (0, 0, 255), self.rect)
+
+class Platform:
+    def __init__(self, x_plat, y_plat, width, height):
+        self.rect = pygame.Rect(x_plat, y_plat, width, height)
+        self.collider = pygame.Rect(x_plat, y_plat, width, 1)
+
+    def draw(self):
+        pygame.draw.rect(screen, (255, 255, 255), self.rect)
+        pygame.draw.rect(screen, (0, 255, 0), self.collider)
+
+class Winbox(Platform):
+    def winplay(self, player):
+        if self.rect.colliderect(player.rect):
+            print("Level Complete")
+            pygame.quit()
+            sys.exit()
+
+class Opps:
+    ENEMY_TYPES = {
+        "Phantom": {"damage": 1, "visual": (210, 4, 45), "movement_pattern": "left"},
+        "Bat": {"damage": 1, "visual": (255, 0, 255), "movement_pattern": "up_down"}
+    }
+
+    def __init__(self, name, x_op, y_op, width, height):
+        self.rect = pygame.Rect(x_op, y_op, width, height)
+        self.name = name
+        self.set_attributes()
+
+    def set_attributes(self):
+        enemy_type = self.ENEMY_TYPES.get(self.name)
+        if enemy_type:
+            self.damage = enemy_type["damage"]
+            self.visual = enemy_type["visual"]
+            self.movement_pattern = enemy_type["movement_pattern"]
+
+    def reset_position(self, x_op, y_op):
+        self.rect.x = x_op
+        self.rect.y = y_op
+
+    def movement(self):
+        if self.movement_pattern == "left":
+            self.rect.x -= 10
+            if self.rect.x < -50:
+                self.reset_position(700, 515)
+        elif self.movement_pattern == "up_down":
+            self.rect.y -= 5
+            if self.rect.y < -50:
+                self.rect.y = 460
+                self.rect.x = random.randint(50, 700)
+
+    def attack(self, player):
+        if self.rect.colliderect(player.rect):
+            player.lose_health(self.damage)
+
+    def draw(self):
+        pygame.draw.rect(screen, self.visual, self.rect)
+
+# Initialize player and platforms
+player = Player(0, 500, 25, 25)
+plat1 = Platform(0, 550, 850, 50)
+platforms = [plat1]
+
+# Initialize enemies
+enemies = [
+    Opps("Phantom", 100, 100, 35, 35),
+    Opps("Bat", 200, 100, 25, 25)
+]
+
+# Initialize winbox (goal area)
+winbox = Winbox(700, 500, 50, 50)
+
+# Game loop
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    # Clear the screen
+    screen.fill("black")
+
+    # Draw platforms
+    for platform in platforms:
+        platform.draw()
+
+    # Draw and move enemies, check for attacks
+    for enemy in enemies:
+        enemy.draw()
+        enemy.movement()
+        enemy.attack(player)
+
+    # Draw winbox and check win condition
+    winbox.draw()
+    winbox.winplay(player)
+
+    # Player movement and physics
+    player.move()
+    player.apply_gravity()
+    player.handle_collisions(platforms)
+
+    # Draw player
+    player.draw()
+
+    # Update the display
+    pygame.display.update()
+    clock.tick(60)
+ 

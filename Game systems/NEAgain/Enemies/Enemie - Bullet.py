@@ -1,0 +1,142 @@
+#A MASSIVE SUCCESS LETS GO Enemy 1/6 potencially damn feels good lol
+import pygame
+import sys
+from sys import exit
+import random
+#The plan for this code it to attempt to create a cannon of sorts that the bullet can be fired from. 
+# The position it will be fire from will be a parameter hopefully
+pygame.init()
+# Window Parameters and Name
+width = 800
+height = 600
+screen = pygame.display.set_mode((width, height))
+pygame.display.set_caption("Slipstream")
+# Clock and Framerate
+clock = pygame.time.Clock()
+
+class Player:
+    def __init__(self, x_player, y_player, width, height, lives):
+        self.rect = pygame.Rect(x_player, y_player, width, height)
+        self.lives = 3
+    def move(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.rect.x -= 8
+        if keys[pygame.K_RIGHT]:
+            self.rect.x += 8
+        if keys[pygame.K_UP]:
+            self.rect.y -= 8
+        if keys[pygame.K_DOWN]:
+            self.rect.y += 8
+        if keys[pygame.K_r]:
+            self.rect.x = 400
+            self.rect.y = 300
+        if self.rect.x < 0:
+            self.rect.x = 0
+        if self.rect.x >= 800:
+            self.rect.x = 800           
+
+    def takedam(self,opps):
+            if self.rect.colliderect(opps.rect):             
+                self.lives -= 1
+                 #Its supposed to teleport you to the start of the level when u get hit.
+                player.starting_pos(0,500)
+    
+    def starting_pos(self,startx,starty):
+        #The starting position of each level that the player will be teleported to when they die
+        self.rect.x = startx
+        self.rect.y = starty
+
+    def draw(self):
+        pygame.draw.rect(screen, (0, 0, 255), self.rect) #Blue
+
+class Opps:
+    def __init__(self,name, x_op, y_op, width, height, start_x, start_y):
+        self.rect = pygame.Rect(x_op, y_op, width, height)
+        self.name = name
+        self.damage = 0
+        self.visual = (255, 255, 255)
+        self.set_attributes()
+        self.start_x = start_x
+        self.start_y = start_y
+       
+
+    def set_attributes(self):
+        #if self.name == "Phantom":
+         #   self.damage = 1
+          #  self.visual = (210, 4, 45) #Red
+        if self.name == "Bullet":
+             self.damage = 1
+             self.visual = (255,0,255)
+
+    def reset_position(self,start_x, start_y):
+        #For the moving the thing
+        self.rect.x = start_x
+        self.rect.y = start_y
+
+    def movement(self):
+        #Enemy movement, each one has different qualities
+        #if self.name == "Phantom":
+        #    self.rect.x -= 10
+        #    if self.rect.x < -50:
+        #        self.reset_position(700,515)
+        #        pass
+                # This works but it probably has to be redone because something tells me im gonna have issues lol
+        #Enemy movement, each one has different qualities
+        if self.name == "Bullet":
+             self.rect.x -= 10
+             if self.rect.x < -50:
+                    self.reset_position(self.start_x,self.start_y)
+             
+    
+    #I'm trying to code it so when ever they collide the player loses a life
+    #I think i may have made this more complex than nessesary.
+    
+    def attack(self, player):
+        if self.rect.colliderect(player.rect):
+            player.takedam(self)         
+
+    
+    def draw(self):
+        pygame.draw.rect(screen,self.visual, self.rect)
+
+#An enemy that teleports cause im lazy
+enemy1 = Opps("Bullet", 100, 100, 35, 35,801,50)
+enemy2 = Opps("Bullet", 100, 100, 35, 35,801,100)
+enemy3 = Opps("Bullet", 100, 100, 35, 35,801,150)
+enemy4 = Opps("Bullet", 100, 100, 35, 35,801,400)
+enemy5 = Opps("Bullet", 100, 100, 35, 35,801,450)
+enemy6 = Opps("Bullet", 100, 100, 35, 35,801,500)
+
+enemies = [enemy1,enemy2,enemy3,enemy4,enemy5,enemy6]
+# The player
+player = Player(0, 500, 25, 25,3)
+
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+
+    # Clear the screen
+    screen.fill("black")
+    
+    #Draw enemies
+    for enemy in enemies:
+        enemy.draw()
+
+    # Player movement and physics
+    player.move()
+    
+
+    # Draw player
+    player.draw()
+
+    #Enemy movement
+    for enemy in enemies:
+        enemy.movement()
+        enemy.attack(player)
+
+    # Update the display
+    pygame.display.update()
+    clock.tick(60)
